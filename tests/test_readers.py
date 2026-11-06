@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
+import numpy as np
 import pytest
+from scipy.io import savemat
 
 from closurelab.io.readers import detect_mat_version
 
@@ -19,6 +21,13 @@ DATA_DIR = Path(__file__).parent / "data"
 )
 def test_detect_mat_version(filename, expected):
     assert detect_mat_version(DATA_DIR / filename) == expected
+
+
+def test_detect_mat_version_v4(tmp_path):
+    # MATLAB can no longer write v4 files, so scipy creates one here.
+    path = tmp_path / "a.mat"
+    savemat(path, {"A": np.ones((3, 4))}, format="4")
+    assert detect_mat_version(path) == "v4"
 
 
 def test_detect_mat_version_accepts_str():
@@ -39,4 +48,14 @@ def test_detect_mat_version_raises_on_invalid_file(tmp_path, content):
     path = tmp_path / "bad.mat"
     path.write_bytes(content)
     with pytest.raises(ValueError, match="bad.mat"):
+        detect_mat_version(path)
+
+@pytest.mark.xfail(
+    reason="scipy treats any file with a zero byte in the first 4 as v4",
+    strict=True,
+)
+def test_detect_mat_version_rejects_binary_with_zero_byte(tmp_path):
+    path = tmp_path / "bad.mat"
+    path.write_bytes(b"AB\x00D" + b"x" * 200)
+    with pytest.raises(ValueError):
         detect_mat_version(path)

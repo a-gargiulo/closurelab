@@ -16,7 +16,24 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8"]
+test = ["pytest>=8"]
+lint = ["ruff", "mypy", "scipy-stubs"]
+docs = ["sphinx", "furo"]
+dev = [
+    { include-group = "test" },
+    { include-group = "lint" },
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint]
+extend-select = ["I", "UP", "B", "NPY"]
+
+[tool.mypy]
+files = ["src"]
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["h5py.*"]
+ignore_missing_imports = true
